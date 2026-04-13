@@ -1,0 +1,25 @@
+{
+  "manifest_version": 3,
+  "name": "Google Meet Attendance Tracker",
+  "version": "1.0",
+  "description": "Tracker pour voir qui a rejoint votre Google Meet, à quelle heure ils sont arrivés et partis.",
+  "permissions": [
+    "storage",
+    "activeTab"
+  ],
+  "host_permissions": [
+    "https://meet.google.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://meet.google.com/*"],
+      "js": ["content.js"]
+    }
+  ],
+  "action": {
+    "default_popup": "popup.html"
+  }
+}

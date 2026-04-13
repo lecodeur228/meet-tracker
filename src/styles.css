@@ -1,0 +1,9 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+body {
+  @apply bg-slate-50 text-slate-800 font-sans antialiased;
+  width: 360px;
+  min-height: 480px;
+}
