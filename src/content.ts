@@ -1,13 +1,15 @@
 interface ParticipantInfo {
   joinTime: string;
   leaveTime: string | null;
+  sessions: { start: number, end: number | null }[];
 }
 
-let isTracking = false;
+let isTracking = true; // Auto-start
 let participants: Record<string, ParticipantInfo> = {};
 let sharedLinks = new Map<string, {url: string, text: string, time: string}>();
 let meetingId = window.location.pathname.substring(1);
-let intervalId: any = null;
+let domObserver: MutationObserver | null = null;
+let scanTimeout: number | null = null;
 let isExtensionValid = true;
 
 // Fonction sécurisée pour envoyer un message sans crasher si l'extension a été rechargée
@@ -33,15 +35,22 @@ function safeSendMessage(message: any) {
 }
 
 function injectFloatingButton() {
-  if (document.getElementById('meet-tracker-widget') || !isExtensionValid) return;
+  if (document.getElementById('meet-tracker-widget-host') || !isExtensionValid) return;
 
-  const container = document.createElement('div');
-  container.id = 'meet-tracker-widget';
-  container.style.cssText = `
+  const host = document.createElement('div');
+  host.id = 'meet-tracker-widget-host';
+  host.style.cssText = `
     position: fixed;
     bottom: 90px;
     left: 20px;
     z-index: 999999;
+  `;
+
+  // Shadow DOM to isolate styles
+  const shadowRoot = host.attachShadow({ mode: 'open' });
+
+  const container = document.createElement('div');
+  container.style.cssText = `
     background: #fff;
     border: 1px solid #dadce0;
     padding: 10px 16px;
@@ -59,10 +68,16 @@ function injectFloatingButton() {
   `;
 
   const icon = document.createElement('span');
-  icon.innerHTML = '🚀';
+  icon.innerHTML = isTracking ? '🟢' : '🚀';
   
   const text = document.createElement('span');
-  text.innerText = 'Démarrer Meet Tracker';
+  text.innerText = isTracking ? 'Tracker Actif (Auto)' : 'Démarrer Meet Tracker';
+
+  if (isTracking) {
+    container.style.borderColor = '#34A853';
+    container.style.background = '#e6f4ea';
+    text.style.color = '#137333';
+  }
 
   container.appendChild(icon);
   container.appendChild(text);
@@ -76,7 +91,7 @@ function injectFloatingButton() {
       container.style.borderColor = '#34A853';
       container.style.background = '#e6f4ea';
       icon.innerHTML = '🟢';
-      text.innerText = 'Tracker Actif (Ouvrez la liste des participants !)';
+      text.innerText = 'Tracker Actif';
       text.style.color = '#137333';
       startScan();
     } else {
@@ -89,26 +104,52 @@ function injectFloatingButton() {
     }
   });
 
-  document.body.appendChild(container);
+  shadowRoot.appendChild(container);
+  document.body.appendChild(host);
+
+  if (isTracking) {
+    startScan();
+  }
 }
 
 function startScan() {
-  console.log("[Meet Tracker] Démarrage du scan...");
-  if (intervalId) clearInterval(intervalId);
+  console.log("[Meet Tracker] Démarrage de l'observation...");
   
-  intervalId = setInterval(() => {
+  if (domObserver) domObserver.disconnect();
+  
+  domObserver = new MutationObserver(() => {
     if (!isExtensionValid) {
         stopScan();
         return;
     }
-    trackParticipants();
-    trackLinks();
-  }, 3000);
+    
+    // Un debounce léger pour ne pas surcharger l'exécution
+    if (scanTimeout) clearTimeout(scanTimeout);
+    scanTimeout = window.setTimeout(() => {
+        trackParticipants();
+        trackLinks();
+    }, 1000);
+  });
+
+  // Observe les changements dans tout le document, nécessaire pour capter les listes dynamiques.
+  domObserver.observe(document.body, { 
+      childList: true, 
+      subtree: true,
+      characterData: true 
+  });
+  
+  // Exécuter un scan initial
+  trackParticipants();
+  trackLinks();
 }
 
 function stopScan() {
-  if (intervalId) clearInterval(intervalId);
-  console.log("[Meet Tracker] Pause du scan.");
+  if (domObserver) {
+      domObserver.disconnect();
+      domObserver = null;
+  }
+  if (scanTimeout) clearTimeout(scanTimeout);
+  console.log("[Meet Tracker] Pause de l'observation.");
 }
 
 function trackParticipants() {
@@ -116,6 +157,7 @@ function trackParticipants() {
 
   const currentParticipants = new Set<string>();
   const now = new Date().toLocaleTimeString();
+  const currentTimestamp = Date.now();
 
   const nameSelectors = [
     '[data-self-name]', 
@@ -144,17 +186,31 @@ function trackParticipants() {
 
   currentParticipants.forEach(name => {
     if (!participants[name]) {
-      participants[name] = { joinTime: now, leaveTime: null };
+      participants[name] = { 
+        joinTime: now, 
+        leaveTime: null, 
+        sessions: [{ start: currentTimestamp, end: null }] 
+      };
       console.log(`[Meet Tracker] NOUVEAU : ${name} a rejoint à ${now}`);
-    } else if (participants[name].leaveTime !== null) {
-      participants[name].leaveTime = null; 
+    } else {
+      const activeSessionIndex = participants[name].sessions.findIndex(s => s.end === null);
+      if (activeSessionIndex === -1) {
+        // La personne était partie et s'est reconnectée
+        participants[name].leaveTime = null;
+        participants[name].sessions.push({ start: currentTimestamp, end: null });
+        console.log(`[Meet Tracker] RE-CONNEXION : ${name} a rejoint à ${now}`);
+      }
     }
   });
 
   for (const name in participants) {
-    if (!currentParticipants.has(name) && participants[name].leaveTime === null) {
-      participants[name].leaveTime = now;
-      console.log(`[Meet Tracker] DÉPART : ${name} est parti à ${now}`);
+    if (!currentParticipants.has(name)) {
+      const activeSessionIndex = participants[name].sessions.findIndex(s => s.end === null);
+      if (activeSessionIndex !== -1) {
+        participants[name].leaveTime = now;
+        participants[name].sessions[activeSessionIndex].end = currentTimestamp;
+        console.log(`[Meet Tracker] DÉPART : ${name} est parti à ${now}`);
+      }
     }
   }
 

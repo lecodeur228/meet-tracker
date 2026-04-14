@@ -6,7 +6,7 @@
   "scripts": {
     "build:ts": "tsc",
     "build:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css",
-    "build:copy": "cp src/manifest.json dist/ && cp src/popup.html dist/",
+    "build:copy": "node -e \"const fs = require('fs'); fs.copyFileSync('src/manifest.json', 'dist/manifest.json'); fs.copyFileSync('src/popup.html', 'dist/popup.html');\"",
     "build": "npm run build:ts && npm run build:css && npm run build:copy",
     "watch:ts": "tsc -w",
     "watch:css": "tailwindcss -i ./src/styles.css -o ./dist/styles.css --watch",

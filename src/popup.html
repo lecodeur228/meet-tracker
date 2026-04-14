@@ -4,67 +4,69 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Meet Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Mono:ital,wght@0,400;0,700;1,400;1,700&family=Syne:wght@400..800&display=swap" rel="stylesheet">
   <link href="styles.css" rel="stylesheet">
 </head>
-<body class="w-[360px] h-[520px] flex flex-col bg-[#f8f9fa] text-[#202124] relative shadow-2xl overflow-hidden font-sans">
+<body class="w-[380px] h-[580px] flex flex-col bg-neoYellow text-neoB relative overflow-hidden font-neo border-4 border-neoB">
   
-  <header class="bg-white p-4 shadow-sm flex items-center justify-between sticky top-0 z-10 border-b border-[#e8eaed]">
+  <header class="bg-neoW p-4 flex items-center justify-between sticky top-0 z-10 border-b-4 border-neoB">
     <div class="flex items-center gap-3">
-      <!-- Nouvel Icône/Logo MeetTracker -->
-      <div class="relative w-8 h-8 rounded-full bg-[#e8f0fe] flex items-center justify-center border border-[#d2e3fc]">
-        <svg class="w-5 h-5 text-[#1a73e8]" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
-          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-          <path d="M9 11.5L10.5 13L13.5 9.5" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+      <div class="relative w-10 h-10 bg-neoPink flex items-center justify-center border-2 border-neoB shadow-neo">
+        <svg class="w-6 h-6 text-neoB" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+          <path stroke-linecap="square" stroke-linejoin="miter" stroke-width="2.5" d="M15 10l4.553-2.276A1 1 0 0121 8.618v6.764a1 1 0 01-1.447.894L15 14M5 18h8a2 2 0 002-2V8a2 2 0 00-2-2H5a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
         </svg>
       </div>
       <div>
-        <h1 class="font-medium text-[16px] leading-tight text-[#202124]">Meet Tracker</h1>
-        <p id="status-text" class="text-[12px] text-[#5f6368] mt-0.5 tracking-wide">Initialisation...</p>
+        <h1 class="font-display font-bold text-[20px] uppercase leading-none tracking-tighter">Meet<br/>Tracker</h1>
       </div>
     </div>
     
-    <div class="relative flex h-3 w-3" id="status-container">
-      <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-[#34A853] opacity-75 hidden" id="status-ping"></span>
-      <span class="relative inline-flex rounded-full h-3 w-3 bg-[#dadce0]" id="status-dot"></span>
+    <div class="flex flex-col items-end">
+      <p id="status-text" class="text-[10px] font-bold uppercase tracking-widest bg-neoB text-neoW px-2 py-0.5 mb-1">-</p>
+      <div class="relative flex h-4 w-4 border-2 border-neoB bg-neoW" id="status-container">
+        <span class="absolute inset-0 bg-neoGreen animate-pulse hidden border-2 border-neoB" id="status-ping"></span>
+        <span class="absolute inset-0 bg-neoW" id="status-dot"></span>
+      </div>
     </div>
   </header>
 
-  <!-- NAVIGATION TABS -->
-  <div class="flex border-b border-[#e8eaed] bg-white text-[13px] font-medium">
-    <button id="tab-participants" class="flex-1 py-3 text-[#1a73e8] border-b-2 border-[#1a73e8] transition-colors focus:outline-none">
-      Participants
+  <!-- TABS -->
+  <div class="flex border-b-4 border-neoB bg-neoW text-[14px] font-bold uppercase tracking-wider">
+    <button id="tab-participants" class="flex-1 py-3 bg-neoPink border-r-4 border-neoB transition-all focus:outline-none">
+      Users
     </button>
-    <button id="tab-links" class="flex-1 py-3 text-[#5f6368] border-b-2 border-transparent hover:text-[#202124] transition-colors focus:outline-none">
-      Liens du Chat (<span id="links-count">0</span>)
+    <button id="tab-links" class="flex-1 py-3 bg-neoW hover:bg-neoYellow transition-all focus:outline-none flex justify-center items-center gap-2">
+      Links <span id="links-count" class="bg-neoB text-neoW text-[10px] px-1.5 py-0.5 rounded-sm">0</span>
     </button>
   </div>
 
-  <main class="flex-1 overflow-y-auto p-4 flex flex-col relative">
+  <main class="flex-1 overflow-y-auto p-4 flex flex-col relative bg-neoYellow backgroundImage noise">
     <!-- VIEW PARTICIPANTS -->
-    <div id="view-participants" class="flex flex-col h-full">
-      <div id="stats-banner" class="mb-4 bg-white rounded-lg p-3 shadow-sm border border-[#e8eaed] hidden justify-between items-center text-sm transition-all duration-300">
-        <span class="text-[#5f6368] font-medium">Connectés</span>
-        <span id="participant-count" class="font-bold text-[#1a73e8] bg-[#e8f0fe] px-2.5 py-1 rounded-md border border-[#d2e3fc]">0</span>
+    <div id="view-participants" class="flex flex-col h-full z-10">
+      <div class="mb-4 bg-neoW border-4 border-neoB p-3 flex justify-between items-center shadow-neo">
+        <span class="font-bold uppercase text-[12px] tracking-widest">Active</span>
+        <span id="participant-count" class="font-display font-extrabold text-[24px] leading-none text-neoBlue">0</span>
       </div>
-      <ul id="list" class="space-y-3 pb-2 flex-1"></ul>
+      <ul id="list" class="space-y-4 pb-2 flex-1"></ul>
     </div>
 
     <!-- VIEW LINKS -->
-    <div id="view-links" class="flex flex-col h-full hidden">
-      <ul id="links-list" class="space-y-3 pb-2 flex-1">
-        <li class="h-full flex flex-col items-center justify-center text-center px-4 pt-8">
-            <svg class="w-12 h-12 text-[#dadce0] mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
-            <p class="text-[#3c4043] font-medium text-sm">Aucun lien détecté</p>
-            <p class="text-[#5f6368] text-xs mt-1">Ouvrez le chat sur Google Meet pour lire les liens partagés.</p>
+    <div id="view-links" class="flex flex-col h-full hidden z-10">
+      <ul id="links-list" class="space-y-4 pb-2 flex-1">
+        <li class="h-full flex flex-col items-center justify-center text-center p-6 border-4 border-neoB bg-neoW shadow-neo">
+            <svg class="w-12 h-12 text-neoB mb-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="square" stroke-linejoin="miter" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+            <p class="font-bold uppercase text-[14px]">Link Void</p>
+            <p class="text-[12px] mt-2">No data transferred.</p>
         </li>
       </ul>
     </div>
   </main>
 
-  <footer class="p-4 bg-white border-t border-[#e8eaed] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.02)] z-10 bottom-0 relative">
-    <button id="exportCsv" disabled class="w-full flex justify-center items-center gap-2 bg-[#1a73e8] hover:bg-[#1557b0] text-white font-medium py-2.5 px-4 rounded shadow-sm transition-all duration-200 disabled:bg-[#f1f3f4] disabled:text-[#9aa0a6] disabled:cursor-not-allowed">
-      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
-      Exporter Présences & Liens
+  <footer class="p-4 bg-neoW border-t-4 border-neoB z-20 bottom-0 relative flex gap-2">
+    <button id="exportCsv" disabled class="w-full flex justify-center items-center gap-2 bg-neoBlue hover:bg-neoPink text-neoW font-bold uppercase tracking-wider py-3 px-4 border-4 border-neoB shadow-neo hover:shadow-neo-hover hover:translate-y-[2px] hover:translate-x-[2px] transition-all duration-75 disabled:bg-gray-300 disabled:text-gray-500 disabled:shadow-none disabled:translate-y-[4px] disabled:translate-x-[4px] disabled:cursor-not-allowed">
+       DUMP
     </button>
   </footer>
 

@@ -1,6 +1,7 @@
 interface ParticipantInfo {
   joinTime: string;
   leaveTime: string | null;
+  sessions: { start: number, end: number | null }[];
 }
 interface SharedLink {
   url: string;
@@ -21,8 +22,17 @@ chrome.runtime.onMessage.addListener((message: Message, sender, sendResponse) =>
       if (!data[meetingId]) data[meetingId] = {};
 
       for (const [name, info] of Object.entries(message.data as Record<string, ParticipantInfo>)) {
-        if (!data[meetingId][name]) data[meetingId][name] = info;
-        else data[meetingId][name].leaveTime = info.leaveTime;
+        if (!data[meetingId][name]) {
+          data[meetingId][name] = info;
+        } else {
+          // Fusion intelligente des sessions pour préserver le temps
+          const existingSessions = data[meetingId][name].sessions || [];
+          const newSessions = info.sessions || [];
+          
+          // Dans ce cas simple, la page gère l'état, on lui fait confiance 
+          // (on écrase avec la version la plus récente de la page active)
+          data[meetingId][name] = info;
+        }
       }
       chrome.storage.local.set({ meetAttendance: data });
     });

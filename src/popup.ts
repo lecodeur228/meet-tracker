@@ -1,5 +1,21 @@
-interface ParticipantInfo { joinTime: string; leaveTime: string | null; }
+interface ParticipantInfo { 
+  joinTime: string; 
+  leaveTime: string | null; 
+  sessions: { start: number, end: number | null }[];
+}
 interface SharedLink { url: string; text: string; time: string; }
+
+// Fonction pour formater le temps en H:MM:SS
+function formatDuration(ms: number): string {
+    const totalSeconds = Math.floor(ms / 1000);
+    const h = Math.floor(totalSeconds / 3600);
+    const m = Math.floor((totalSeconds % 3600) / 60);
+    const s = totalSeconds % 60;
+    
+    if (h > 0) return `${h}h ${m < 10 ? '0' : ''}${m}m`;
+    if (m > 0) return `${m}m ${s < 10 ? '0' : ''}${s}s`;
+    return `${s}s`;
+}
 
 document.addEventListener('DOMContentLoaded', () => {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
@@ -24,25 +40,25 @@ document.addEventListener('DOMContentLoaded', () => {
     const viewLinks = document.getElementById('view-links');
 
     if (!isMeet) {
-      if (txtStatus) txtStatus.innerText = "Hors réunion Meet";
-      if (dotStatus) dotStatus.classList.replace('bg-[#dadce0]', 'bg-[#ea4335]');
+      if (txtStatus) txtStatus.innerText = "NO SIGNAL";
+      if (dotStatus) dotStatus.classList.replace('bg-neoW', 'bg-neoPink');
       return;
     }
 
-    if (txtStatus) txtStatus.innerText = `ID: ${meetingId}`;
-    if (dotStatus) dotStatus.classList.replace('bg-[#dadce0]', 'bg-[#34A853]');
+    if (txtStatus) txtStatus.innerText = meetingId;
+    if (dotStatus) dotStatus.classList.replace('bg-neoW', 'bg-neoGreen');
     if (pingStatus) pingStatus.classList.remove('hidden');
 
     tabPart?.addEventListener('click', () => {
-        tabPart.className = "flex-1 py-3 text-[#1a73e8] border-b-2 border-[#1a73e8] transition-colors focus:outline-none";
-        tabLinks!.className = "flex-1 py-3 text-[#5f6368] border-b-2 border-transparent hover:text-[#202124] transition-colors focus:outline-none";
+        tabPart.className = "flex-1 py-3 bg-neoPink border-r-4 border-neoB transition-all focus:outline-none";
+        tabLinks!.className = "flex-1 py-3 bg-neoW hover:bg-neoYellow transition-all focus:outline-none flex justify-center items-center gap-2";
         viewPart?.classList.remove('hidden');
         viewLinks?.classList.add('hidden');
     });
 
     tabLinks?.addEventListener('click', () => {
-        tabLinks.className = "flex-1 py-3 text-[#1a73e8] border-b-2 border-[#1a73e8] transition-colors focus:outline-none";
-        tabPart!.className = "flex-1 py-3 text-[#5f6368] border-b-2 border-transparent hover:text-[#202124] transition-colors focus:outline-none";
+        tabLinks.className = "flex-1 py-3 bg-neoPink transition-all focus:outline-none flex justify-center items-center gap-2";
+        tabPart!.className = "flex-1 py-3 bg-neoW hover:bg-neoYellow border-r-4 border-neoB transition-all focus:outline-none";
         viewLinks?.classList.remove('hidden');
         viewPart?.classList.add('hidden');
     });
@@ -52,30 +68,49 @@ document.addEventListener('DOMContentLoaded', () => {
         // Render Participants
         const dData = (res.meetAttendance || {})[meetingId] || {};
         const pKeys = Object.keys(dData);
-        if (countPart) countPart.innerHTML = `${pKeys.filter(k=>dData[k].leaveTime===null).length} <span class="font-normal text-[#5f6368]">/ ${pKeys.length}</span>`;
+        if (countPart) countPart.innerHTML = `${pKeys.filter(k=>dData[k].leaveTime===null).length} <span class="font-neo text-[14px] text-neoB/50">/ ${pKeys.length}</span>`;
         
         const listEl = document.getElementById('list');
         if (listEl && pKeys.length > 0) {
             listEl.innerHTML = '';
             btnExport.disabled = false;
             for (const [name, times] of Object.entries(dData)) {
-                // @ts-ignore
-                const isOnline = times.leaveTime === null;
-                // @ts-ignore
-                const lv = isOnline ? '<span class="text-[#34A853] font-bold text-[12px]">En ligne</span>' : times.leaveTime;
-                const words = name.split(' ').filter(n=>n.length>0);
-                const initials = words.length>=2 ? (words[0][0]+words[1][0]).toUpperCase() : (words[0] ? words[0].substring(0,2).toUpperCase() : 'U');
+                const isOnline = (times as any).leaveTime === null;
+                const lv = isOnline ? 'ACTIVE' : (times as any).leaveTime;
+                
+                const initials = name.split(' ').slice(0,2).map(n => n[0]).join('').toUpperCase() || 'U';
+
+                // Calcul du temps total
+                let totalTimeMs = 0;
+                const sessions = (times as any).sessions || [];
+                const currentMs = Date.now();
+                
+                sessions.forEach((s: any) => {
+                   if (s.start) {
+                     const end = s.end ? s.end : currentMs; // Si en ligne, on compte jusqu'à maintenant
+                     totalTimeMs += (end - s.start);
+                   }
+                });
+
+                const formattedTime = formatDuration(totalTimeMs);
                 
                 const li = document.createElement('li');
-                li.className = "bg-white border border-[#e8eaed] rounded-lg p-3 shadow-sm flex items-start gap-3 relative";
+                li.className = `bg-neoW border-4 border-neoB p-3 shadow-neo flex items-center gap-4 relative transition-transform hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] ${isOnline ? '' : 'opacity-80'}`;
                 li.innerHTML = `
-                <div class="absolute left-0 top-0 bottom-0 w-[3px] ${isOnline?'bg-[#34A853]':'bg-[#9aa0a6]'} rounded-l-lg"></div>
-                <div class="flex-shrink-0 h-9 w-9 mt-0.5 rounded-full ${isOnline?'bg-[#e6f4ea] text-[#137333]':'bg-[#f1f3f4] text-[#5f6368]'} flex items-center justify-center font-bold ml-1 text-[13px]">${initials}</div>
+                <div class="w-12 h-12 flex-shrink-0 flex items-center justify-center font-display font-extrabold text-[20px] border-2 border-neoB ${isOnline?'bg-neoGreen':'bg-gray-300'} text-neoB">${initials}</div>
                 <div class="flex-1 min-w-0">
-                  <div class="font-medium text-[#202124] truncate">${name}</div>
-                  <div class="flex gap-3 mt-1 text-[11px] text-[#5f6368]">
-                    <span><span class="w-1.5 h-1.5 inline-block rounded-full bg-[#fbbc04] mr-1"></span><b>${(times as any).joinTime}</b></span>
-                    <span><span class="w-1.5 h-1.5 inline-block rounded-full ${isOnline?'bg-[#34A853]':'bg-[#ea4335]'} mr-1"></span>${lv}</span>
+                  <div class="font-bold text-[14px] uppercase truncate tracking-tight">${name}</div>
+                  <div class="flex flex-col gap-1 mt-1 text-[11px] font-bold tracking-widest">
+                    <div class="flex gap-2">
+                       <span class="bg-neoYellow border-2 border-neoB px-1 py-0.5">IN:${(times as any).joinTime}</span>
+                       <span class="${isOnline?'bg-neoPink':'bg-gray-200'} border-2 border-neoB px-1 py-0.5 ${isOnline?'animate-pulse':''}">${isOnline?'🟢':'OUT:'}${lv}</span>
+                    </div>
+                    <div>
+                       <span class="bg-neoB text-neoW border-2 border-neoB px-1 py-0.5 flex gap-1 items-center inline-flex mt-1">
+                          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="square" stroke-width="2" d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                          ${formattedTime} 
+                       </span>
+                    </div>
                   </div>
                 </div>`;
                 listEl.appendChild(li);
@@ -92,13 +127,15 @@ document.addEventListener('DOMContentLoaded', () => {
             btnExport.disabled = false;
             lData.reverse().forEach((link) => {
                 const li = document.createElement('li');
-                li.className = "bg-white border border-[#e8eaed] rounded-lg p-3 shadow-sm hover:shadow transition-all duration-200";
+                li.className = "bg-neoW border-4 border-neoB p-3 shadow-neo hover:-translate-y-1 hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] transition-transform";
                 li.innerHTML = `
-                <div class="flex items-start gap-2 max-w-full">
-                    <svg class="w-4 h-4 text-[#1a73e8] mt-0.5 flex-shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1"></path></svg>
+                <div class="flex items-start gap-3 max-w-full">
+                    <div class="mt-1 bg-neoYellow border-2 border-neoB w-6 h-6 flex items-center justify-center flex-shrink-0">
+                      <svg class="w-4 h-4 text-neoB" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="square" d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"></path></svg>
+                    </div>
                     <div class="flex-1 min-w-0">
-                       <a href="${link.url}" target="_blank" class="text-[#1a73e8] hover:underline text-[13px] font-medium break-all block" title="${link.url}">${link.url.substring(0, 45)}${link.url.length > 45 ? '...' : ''}</a>
-                       <div class="text-[11px] text-[#5f6368] mt-1">${link.time}</div>
+                       <a href="${link.url}" target="_blank" class="text-neoBlue hover:text-neoPink hover:underline text-[12px] font-bold break-all block leading-tight" title="${link.url}">${link.url.substring(0, 50)}${link.url.length > 50 ? '...' : ''}</a>
+                       <div class="text-[11px] font-bold mt-1 bg-neoB text-neoW px-1 py-0.5 inline-block border-2 border-neoB">${link.time}</div>
                     </div>
                 </div>`;
                 linkList.appendChild(li);
@@ -106,8 +143,8 @@ document.addEventListener('DOMContentLoaded', () => {
         }
       });
     };
+    
     render();
-
     setInterval(render, 3000); // Auto-refresh
 
     // Export Action
